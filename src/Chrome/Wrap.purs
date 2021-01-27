@@ -79,6 +79,18 @@ wrapListener api event =
         Left e -> Left e
     # ExceptT
 
+wrapListener2 :: ∀ a b c. DecodeJson a => DecodeJson b => String -> String -> (a -> b -> c) -> Chrome c
+wrapListener2 api event f =
+  wrapListenerImpl Right (Left $ permission api) api event
+    # fromEffectFnAff
+    # map case _ of
+        Right json ->
+          lmap Decode do
+            a /\ b <- decodeJson json
+            pure $ f a b
+        Left e -> Left e
+    # ExceptT
+
 wrapListener3 :: ∀ a b c d. DecodeJson a => DecodeJson b => DecodeJson c => String -> String -> (a -> b -> c -> d) -> Chrome d
 wrapListener3 api event f =
   wrapListenerImpl Right (Left $ permission api) api event

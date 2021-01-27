@@ -36,7 +36,7 @@ main =
                           lift
                             $ first
                                 [ Navigated <$> lift2 Tuple WebNav.onBeforeNavigate Tabs.onUpdated
-                                -- ^^ don't use parLift2 because the onUpdate listener gets called multiple times ^^ also the comment is down here because pury sux
+                                -- ^^ don't use parLift2 because the onUpdate listener gets called multiple times ^^ also the comment is down here because purty sux
                                 , BookmarkCreated <$> Bookmarks.onCreated
                                 , BookmarkMoved <$> Bookmarks.onMoved
                                 , BookmarkChanged <$> Bookmarks.onChanged

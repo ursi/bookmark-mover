@@ -5,12 +5,17 @@ import Chrome.Wrap (Chrome)
 import Chrome.Wrap as Chrome
 import Data.Argonaut
   ( class DecodeJson
+  , class EncodeJson
   , JsonDecodeError(..)
   , (.:)
   , (.:!)
+  , (:=?)
+  , (~>?)
   , decodeJson
+  , jsonEmptyObject
   )
 import Data.Argonaut as Arg
+import Data.Argonaut.Encode.Encoders (encodeString)
 import Data.Newtype (class Newtype)
 import Debug as Debug
 
@@ -138,6 +143,12 @@ instance decodeJsonTabStatus :: DecodeJson TabStatus where
           "complete" -> Right Complete
           _ -> Left $ UnexpectedValue json
 
+instance encodeJsonTabStatus :: EncodeJson TabStatus where
+  encodeJson = case _ of
+    Unloaded -> encodeString "unloaded"
+    Loading -> encodeString "loading"
+    Complete -> encodeString "complete"
+
 newtype ChangeInfo
   = ChangeInfo
   { audible :: Maybe Boolean
@@ -189,3 +200,90 @@ onUpdated :: Chrome OnUpdated
 onUpdated =
   Chrome.wrapListener3 "tabs" "onUpdated"
     { tabId: _, changeInfo: _, tab: _ }
+
+type QueryInfo
+  = { active :: Maybe Boolean
+    , audible :: Maybe Boolean
+    , autoDiscardable :: Maybe Boolean
+    , currentWindow :: Maybe Boolean
+    , discarded :: Maybe Boolean
+    , groupId :: Maybe Int
+    , highlighted :: Maybe Boolean
+    , index :: Maybe Int
+    , lastFocusedWindow :: Maybe Boolean
+    , muted :: Maybe Boolean
+    , pinned :: Maybe Boolean
+    , status :: Maybe TabStatus
+    , title :: Maybe String
+    , url :: Maybe (Array String)
+    , windowId :: Maybe Number
+    , windowType :: Maybe WindowType
+    }
+
+data WindowType
+  = Normal
+  | Popup
+  | Panel
+  | App
+  | Devtools
+
+instance decodeJsonWindowType :: DecodeJson WindowType where
+  decodeJson json =
+    Arg.toString json
+      # maybe (Left $ TypeMismatch "I'm looking for a string here") case _ of
+          "normal" -> Right Normal
+          "popup" -> Right Popup
+          "panel" -> Right Panel
+          "app" -> Right App
+          "devtools" -> Right Devtools
+          _ -> Left $ UnexpectedValue json
+
+instance encodeJsonWindowType :: EncodeJson WindowType where
+  encodeJson = case _ of
+    Normal -> encodeString "normal"
+    Popup -> encodeString "popup"
+    Panel -> encodeString "panel"
+    App -> encodeString "app"
+    Devtools -> encodeString "devtools"
+
+defaultQuery :: QueryInfo
+defaultQuery =
+  { active: Nothing
+  , audible: Nothing
+  , autoDiscardable: Nothing
+  , currentWindow: Nothing
+  , discarded: Nothing
+  , groupId: Nothing
+  , highlighted: Nothing
+  , index: Nothing
+  , lastFocusedWindow: Nothing
+  , muted: Nothing
+  , pinned: Nothing
+  , status: Nothing
+  , title: Nothing
+  , url: Nothing
+  , windowId: Nothing
+  , windowType: Nothing
+  }
+
+query :: QueryInfo -> Chrome (Array Tab)
+query q =
+  Chrome.wrapApi "tabs" "query"
+    [ "active" :=? q.active
+        ~>? ("audible" :=? q.audible)
+        ~>? ("autoDiscardable" :=? q.autoDiscardable)
+        ~>? ("currentWindow" :=? q.currentWindow)
+        ~>? ("discarded" :=? q.discarded)
+        ~>? ("groupId" :=? q.groupId)
+        ~>? ("highlighted" :=? q.highlighted)
+        ~>? ("index" :=? q.index)
+        ~>? ("lastFocusedWindow" :=? q.lastFocusedWindow)
+        ~>? ("muted" :=? q.muted)
+        ~>? ("pinned" :=? q.pinned)
+        ~>? ("status" :=? q.status)
+        ~>? ("title" :=? q.title)
+        ~>? ("url" :=? q.url)
+        ~>? ("windowId" :=? q.windowId)
+        ~>? ("windowType" :=? q.windowType)
+        ~>? jsonEmptyObject
+    ]

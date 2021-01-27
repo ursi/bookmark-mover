@@ -4,7 +4,8 @@
   "description": "Build an Extension!",
   "permissions": [
     "bookmarks",
-	"tabs"
+	"tabs",
+	"webNavigation"
   ],
   "background": {
     "scripts": [

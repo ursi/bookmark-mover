@@ -185,8 +185,7 @@ type OnUpdated
     , tab :: Tab
     }
 
-mkOnUpdated :: Int -> ChangeInfo -> Tab -> OnUpdated
-mkOnUpdated = { tabId: _, changeInfo: _, tab: _ }
-
 onUpdated :: Chrome OnUpdated
-onUpdated = Chrome.wrapListener3 "tabs" "onUpdated" mkOnUpdated
+onUpdated =
+  Chrome.wrapListener3 "tabs" "onUpdated"
+    { tabId: _, changeInfo: _, tab: _ }

@@ -115,3 +115,8 @@ move id { index, parentId } =
         ~>? ("parentId" :=? parentId)
         ~>? jsonEmptyObject
     ]
+
+onCreated :: Chrome { id :: String, bookmark :: BookmarkTreeNode }
+onCreated =
+  Chrome.wrapListener2 "bookmarks" "onCreated"
+    { id: _, bookmark: _ }

@@ -120,3 +120,15 @@ onCreated :: Chrome { id :: String, bookmark :: BookmarkTreeNode }
 onCreated =
   Chrome.wrapListener2 "bookmarks" "onCreated"
     { id: _, bookmark: _ }
+
+type MoveInfo
+  = { index :: Int
+    , oldIndex :: Int
+    , oldParentId :: String
+    , parentId :: String
+    }
+
+onMoved :: Chrome { id :: String, moveInfo :: MoveInfo }
+onMoved =
+  Chrome.wrapListener2 "bookmarks" "onMoved"
+    { id: _, moveInfo: _ }

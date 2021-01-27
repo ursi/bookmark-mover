@@ -12,6 +12,7 @@ import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (get, put, runStateT)
 import Control.Monad.Trans.Class (lift)
+import Data.Maybe (isJust)
 import Data.Newtype (unwrap)
 import Debug as Debug
 import Effect.Aff (launchAff_)
@@ -43,9 +44,8 @@ main =
                                 ]
                         case event of
                           Navigated ({ url } /\ { changeInfo: (Tabs.ChangeInfo c) }) -> do
-                            case c.url of
-                              Just _ ->
-                                ( lift
+                            when (isJust c.url || c.status == Nothing)
+                              $ ( lift
                                     $ runMaybeT do
                                         bookmark <- MaybeT $ pure $ FO.lookup url bookmarks
                                         lift
@@ -62,10 +62,9 @@ main =
                                                     <#> fromMaybe unit
                                               )
                                 )
-                                  >>= case _ of
-                                      Just _ -> lift getBookmakrs >>= put
-                                      Nothing -> pure unit
-                              Nothing -> pure unit
+                              >>= case _ of
+                                  Just _ -> lift getBookmakrs >>= put
+                                  Nothing -> pure unit
                           _ -> lift getBookmakrs >>= put
                     )
             )

@@ -134,6 +134,8 @@ data TabStatus
   | Loading
   | Complete
 
+derive instance eqTabStatus :: Eq TabStatus
+
 instance decodeJsonTabStatus :: DecodeJson TabStatus where
   decodeJson json =
     Arg.toString json

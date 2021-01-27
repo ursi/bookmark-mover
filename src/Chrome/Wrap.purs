@@ -2,7 +2,7 @@ module Chrome.Wrap where
 
 import MasonPrelude
 import Control.Monad.Except (ExceptT(..))
-import Data.Argonaut (class DecodeJson, Json, JsonDecodeError, decodeJson)
+import Data.Argonaut (class DecodeJson, Json, JsonDecodeError(..), decodeJson)
 import Data.Bifunctor (bimap, lmap)
 import Data.Maybe (fromJust)
 import Data.MultiTuple (T3(..))
@@ -64,6 +64,20 @@ foreign import wrapListenerImpl ::
   String ->
   String ->
   EffectFnAff (Error \/ Json)
+
+wrapListener :: ∀ a. DecodeJson a => String -> String -> Chrome a
+wrapListener api event =
+  wrapListenerImpl Right (Left $ permission api) api event
+    # fromEffectFnAff
+    # map case _ of
+        Right json ->
+          lmap Decode
+            $ decodeJson json
+            >>= case _ of
+                [ a ] -> Right a
+                _ -> Left $ TypeMismatch "wrapListener"
+        Left e -> Left e
+    # ExceptT
 
 wrapListener3 :: ∀ a b c d. DecodeJson a => DecodeJson b => DecodeJson c => String -> String -> (a -> b -> c -> d) -> Chrome d
 wrapListener3 api event f =

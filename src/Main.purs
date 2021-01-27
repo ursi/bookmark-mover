@@ -56,6 +56,3 @@ getLineage btn = go (pure $ (unwrap btn).id) btn
       )
       <#> fromMaybe acc
 
--- case c.url of
---   Just url -> logShow $ FO.lookup url bookmarks
---   Nothing -> pure unit

@@ -38,6 +38,11 @@ exports.wrapListenerImpl = Right => LeftPermissions => api => method => (onError
 			}
 
 			event.addListener(listener);
+
+			return (_, __, onCancelerSuccess) => {
+				event.removeListener(listener);
+				onCancelerSuccess();
+			}
 		} else {
 			onSuccess(LeftPermissions);
 		}

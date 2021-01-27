@@ -132,3 +132,20 @@ onMoved :: Chrome { id :: String, moveInfo :: MoveInfo }
 onMoved =
   Chrome.wrapListener2 "bookmarks" "onMoved"
     { id: _, moveInfo: _ }
+
+newtype ChangeInfo
+  = ChangeInfo { title :: String, url :: Maybe String }
+
+instance decodeJsonChangeInfo :: DecodeJson ChangeInfo where
+  decodeJson json =
+    ChangeInfo
+      <$> do
+          obj <- decodeJson json
+          title <- obj .: "title"
+          url <- obj .:! "url"
+          pure { title, url }
+
+onChanged :: Chrome { id :: String, changeInfo :: ChangeInfo }
+onChanged =
+  Chrome.wrapListener2 "bookmarks" "onChanged"
+    { id: _, changeInfo: _ }

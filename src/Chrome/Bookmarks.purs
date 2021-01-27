@@ -7,9 +7,7 @@ import Data.Argonaut
   , Json
   , (.:)
   , (.:!)
-  , (:=)
   , (:=?)
-  , (~>)
   , (~>?)
   , decodeJson
   , encodeJson

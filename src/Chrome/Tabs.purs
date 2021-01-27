@@ -201,6 +201,9 @@ onUpdated =
   Chrome.wrapListener3 "tabs" "onUpdated"
     { tabId: _, changeInfo: _, tab: _ }
 
+onCreated :: Chrome Tab
+onCreated = Chrome.wrapListener "tabs" "onCreated"
+
 type QueryInfo
   = { active :: Maybe Boolean
     , audible :: Maybe Boolean

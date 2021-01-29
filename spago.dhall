@@ -1,5 +1,5 @@
 { name = "my-project"
-, dependencies = [ "aff", "argonaut", "mason-prelude" ]
+, dependencies = [ "aff", "mason-prelude", "simple-json" ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
 }

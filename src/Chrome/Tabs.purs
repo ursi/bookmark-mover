@@ -3,131 +3,57 @@ module Chrome.Tabs where
 import MasonPrelude
 import Chrome.Wrap (Chrome)
 import Chrome.Wrap as Chrome
-import Data.Argonaut
-  ( class DecodeJson
-  , class EncodeJson
-  , JsonDecodeError(..)
-  , (.:)
-  , (.:!)
-  , (:=?)
-  , (~>?)
-  , decodeJson
-  , jsonEmptyObject
-  )
-import Data.Argonaut as Arg
-import Data.Argonaut.Encode.Encoders (encodeString)
-import Data.Newtype (class Newtype)
+import Control.Monad.Except (throwError)
 import Debug as Debug
+import Foreign (ForeignError(..))
+import Simple.JSON as Json
+import Simple.JSON (class ReadForeign, class WriteForeign)
 
-newtype Tab
-  = Tab
-  { active :: Boolean
-  , autoDiscardable :: Boolean
-  , discarded :: Boolean
-  , pinned :: Boolean
-  , audible :: Maybe Boolean
-  , favIconUrl :: Maybe String
-  , groupId :: Maybe Int
-  , height :: Maybe Int
-  , highlighted :: Maybe Boolean
-  , id :: Maybe Int
-  , incognito :: Maybe Boolean
-  , index :: Maybe Int
-  , mutedInfo :: Maybe MutedInfo
-  , openerTabId :: Maybe Int
-  , pendingUrl :: Maybe String
-  , sessionId :: Maybe String
-  , status :: Maybe TabStatus
-  , title :: Maybe String
-  , url :: Maybe String
-  , width :: Maybe Int
-  , windowId :: Maybe Int
-  }
+type Tab
+  = { active :: Boolean
+    , autoDiscardable :: Boolean
+    , discarded :: Boolean
+    , pinned :: Boolean
+    , audible :: Maybe Boolean
+    , favIconUrl :: Maybe String
+    , groupId :: Maybe Int
+    , height :: Maybe Int
+    , highlighted :: Maybe Boolean
+    , id :: Maybe Int
+    , incognito :: Maybe Boolean
+    , index :: Maybe Int
+    , mutedInfo :: Maybe MutedInfo
+    , openerTabId :: Maybe Int
+    , pendingUrl :: Maybe String
+    , sessionId :: Maybe String
+    , status :: Maybe TabStatus
+    , title :: Maybe String
+    , url :: Maybe String
+    , width :: Maybe Int
+    , windowId :: Maybe Int
+    }
 
-derive instance newtypeTab :: Newtype Tab _
-
-instance decodeJsonTab :: DecodeJson Tab where
-  decodeJson json =
-    Tab
-      <$> do
-          obj <- decodeJson json
-          active <- obj .: "active"
-          autoDiscardable <- obj .: "autoDiscardable"
-          discarded <- obj .: "discarded"
-          pinned <- obj .: "pinned"
-          audible <- obj .:! "audible"
-          favIconUrl <- obj .:! "favIconUrl"
-          groupId <- obj .:! "groupId"
-          height <- obj .:! "height"
-          highlighted <- obj .:! "highlighted"
-          id <- obj .:! "id"
-          incognito <- obj .:! "incognito"
-          index <- obj .:! "index"
-          mutedInfo <- obj .:! "mutedInfo"
-          openerTabId <- obj .:! "openerTabId"
-          pendingUrl <- obj .:! "pendingUrl"
-          sessionId <- obj .:! "sessionId"
-          status <- obj .:! "status"
-          title <- obj .:! "title"
-          url <- obj .:! "url"
-          width <- obj .:! "width"
-          windowId <- obj .:! "windowId"
-          pure
-            { active
-            , autoDiscardable
-            , discarded
-            , pinned
-            , audible
-            , favIconUrl
-            , groupId
-            , height
-            , highlighted
-            , id
-            , incognito
-            , index
-            , mutedInfo
-            , openerTabId
-            , pendingUrl
-            , sessionId
-            , status
-            , title
-            , url
-            , width
-            , windowId
-            }
-
-newtype MutedInfo
-  = MutedInfo
-  { extensionId :: Maybe String
-  , muted :: Boolean
-  , reason :: Maybe MutedInfoReason
-  }
-
-derive instance newtypeMutedInfo :: Newtype MutedInfo _
-
-instance decodeJsonMutedInfo :: DecodeJson MutedInfo where
-  decodeJson json =
-    MutedInfo
-      <$> do
-          obj <- decodeJson json
-          extensionId <- obj .:! "extensionId"
-          muted <- obj .: "muted"
-          reason <- obj .:! "reason"
-          pure { extensionId, muted, reason }
+type MutedInfo
+  = { extensionId :: Maybe String
+    , muted :: Boolean
+    , reason :: Maybe MutedInfoReason
+    }
 
 data MutedInfoReason
   = User
   | Capture
   | Extension
 
-instance decodeJsonMutedInfoReason :: DecodeJson MutedInfoReason where
-  decodeJson json =
-    Arg.toString json
-      # maybe (Left $ TypeMismatch "I'm looking for a string here") case _ of
-          "user" -> Right User
-          "capture" -> Right Capture
-          "extension" -> Right Extension
-          _ -> Left $ UnexpectedValue json
+instance readForeignMutedInfoReason :: ReadForeign MutedInfoReason where
+  readImpl =
+    Json.read'
+      >=> case _ of
+          "user" -> pure User
+          "capture" -> pure Capture
+          "extension" -> pure Extension
+          str ->
+            throwError $ pure
+              $ TypeMismatch "one of: user, capture, extension" str
 
 data TabStatus
   = Unloaded
@@ -136,61 +62,34 @@ data TabStatus
 
 derive instance eqTabStatus :: Eq TabStatus
 
-instance decodeJsonTabStatus :: DecodeJson TabStatus where
-  decodeJson json =
-    Arg.toString json
-      # maybe (Left $ TypeMismatch "I'm looking for a string here") case _ of
-          "unloaded" -> Right Unloaded
-          "loading" -> Right Loading
-          "complete" -> Right Complete
-          _ -> Left $ UnexpectedValue json
+instance readForeignTabStatus :: ReadForeign TabStatus where
+  readImpl =
+    Json.read'
+      >=> case _ of
+          "unloaded" -> pure Unloaded
+          "loading" -> pure Loading
+          "complete" -> pure Complete
+          str ->
+            throwError $ pure
+              $ TypeMismatch "one of: unloaded, loading, complete" str
 
-instance encodeJsonTabStatus :: EncodeJson TabStatus where
-  encodeJson = case _ of
-    Unloaded -> encodeString "unloaded"
-    Loading -> encodeString "loading"
-    Complete -> encodeString "complete"
+instance writeForeignTabStatus :: WriteForeign TabStatus where
+  writeImpl = case _ of
+    Unloaded -> Json.write "unloaded"
+    Loading -> Json.write "loading"
+    Complete -> Json.write "complete"
 
-newtype ChangeInfo
-  = ChangeInfo
-  { audible :: Maybe Boolean
-  , autoDiscardable :: Maybe Boolean
-  , discarded :: Maybe Boolean
-  , favIconUrl :: Maybe String
-  , groupId :: Maybe Int
-  , pinned :: Maybe Boolean
-  , status :: Maybe TabStatus
-  , title :: Maybe String
-  , url :: Maybe String
-  }
-
-derive instance newtypeChangeInfo :: Newtype ChangeInfo _
-
-instance decodeJsonChangeInfo :: DecodeJson ChangeInfo where
-  decodeJson json =
-    ChangeInfo
-      <$> do
-          obj <- decodeJson json
-          audible <- obj .:! "audible"
-          autoDiscardable <- obj .:! "autoDiscardable"
-          discarded <- obj .:! "discarded"
-          favIconUrl <- obj .:! "favIconUrl"
-          groupId <- obj .:! "groupId"
-          pinned <- obj .:! "pinned"
-          status <- obj .:! "status"
-          title <- obj .:! "title"
-          url <- obj .:! "url"
-          pure
-            { audible
-            , autoDiscardable
-            , discarded
-            , favIconUrl
-            , groupId
-            , pinned
-            , status
-            , title
-            , url
-            }
+type ChangeInfo
+  = { audible :: Maybe Boolean
+    , autoDiscardable :: Maybe Boolean
+    , discarded :: Maybe Boolean
+    , favIconUrl :: Maybe String
+    , groupId :: Maybe Int
+    , pinned :: Maybe Boolean
+    , status :: Maybe TabStatus
+    , title :: Maybe String
+    , url :: Maybe String
+    }
 
 type OnUpdated
   = { tabId :: Int
@@ -232,24 +131,26 @@ data WindowType
   | App
   | Devtools
 
-instance decodeJsonWindowType :: DecodeJson WindowType where
-  decodeJson json =
-    Arg.toString json
-      # maybe (Left $ TypeMismatch "I'm looking for a string here") case _ of
-          "normal" -> Right Normal
-          "popup" -> Right Popup
-          "panel" -> Right Panel
-          "app" -> Right App
-          "devtools" -> Right Devtools
-          _ -> Left $ UnexpectedValue json
+instance readForeignWindowType :: ReadForeign WindowType where
+  readImpl =
+    Json.read'
+      >=> case _ of
+          "normal" -> pure Normal
+          "popup" -> pure Popup
+          "panel" -> pure Panel
+          "app" -> pure App
+          "devtools" -> pure Devtools
+          str ->
+            throwError $ pure
+              $ TypeMismatch "one of: normal, popup, panel, app, devtools" str
 
-instance encodeJsonWindowType :: EncodeJson WindowType where
-  encodeJson = case _ of
-    Normal -> encodeString "normal"
-    Popup -> encodeString "popup"
-    Panel -> encodeString "panel"
-    App -> encodeString "app"
-    Devtools -> encodeString "devtools"
+instance writeForeignWindowType :: WriteForeign WindowType where
+  writeImpl = case _ of
+    Normal -> Json.write "normal"
+    Popup -> Json.write "popup"
+    Panel -> Json.write "panel"
+    App -> Json.write "app"
+    Devtools -> Json.write "devtools"
 
 defaultQuery :: QueryInfo
 defaultQuery =
@@ -272,23 +173,4 @@ defaultQuery =
   }
 
 query :: QueryInfo -> Chrome (Array Tab)
-query q =
-  Chrome.wrapApi "tabs" "query"
-    [ "active" :=? q.active
-        ~>? ("audible" :=? q.audible)
-        ~>? ("autoDiscardable" :=? q.autoDiscardable)
-        ~>? ("currentWindow" :=? q.currentWindow)
-        ~>? ("discarded" :=? q.discarded)
-        ~>? ("groupId" :=? q.groupId)
-        ~>? ("highlighted" :=? q.highlighted)
-        ~>? ("index" :=? q.index)
-        ~>? ("lastFocusedWindow" :=? q.lastFocusedWindow)
-        ~>? ("muted" :=? q.muted)
-        ~>? ("pinned" :=? q.pinned)
-        ~>? ("status" :=? q.status)
-        ~>? ("title" :=? q.title)
-        ~>? ("url" :=? q.url)
-        ~>? ("windowId" :=? q.windowId)
-        ~>? ("windowType" :=? q.windowType)
-        ~>? jsonEmptyObject
-    ]
+query q = Chrome.wrapApi "tabs" "query" [ Json.write q ]

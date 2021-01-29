@@ -1,36 +1,27 @@
 module Chrome.Bookmarks where
 
 import MasonPrelude
-import Data.Argonaut
-  ( class DecodeJson
-  , JsonDecodeError(..)
-  , Json
-  , (.:)
-  , (.:!)
-  , (:=?)
-  , (~>?)
-  , decodeJson
-  , encodeJson
-  , jsonEmptyObject
-  )
-import Data.Argonaut as Arg
-import Data.Array as Array
-import Data.Newtype (class Newtype)
-import Foreign.Object (Object)
-import Foreign.Object as FO
+import Control.Monad.Except (throwError)
 import Chrome.Wrap (Chrome)
 import Chrome.Wrap as Chrome
+import Data.Array as Array
+import Data.Newtype (class Newtype)
+import Foreign (Foreign, ForeignError(..))
+import Foreign.Object (Object)
+import Foreign.Object as FO
+import Simple.JSON as Json
+import Simple.JSON (class ReadForeign, readImpl)
 
 data BookmarkTreeNodeUnmodifiable
   = Managed
 
 -- derive instance genericBookmarkTreeNodeUnmodifiable :: Generic BookmarkTreeNodeUnmodifiable _
-instance decodeJsonBookmarkTreeNodeUnmodifiable :: DecodeJson BookmarkTreeNodeUnmodifiable where
-  decodeJson json =
-    Arg.toString json
-      # maybe (Left $ TypeMismatch "I'm looking for a string here") case _ of
-          "managed" -> Right Managed
-          _ -> Left $ UnexpectedValue json
+instance readForeignBookmarkTreeNodeUnmodifiable :: ReadForeign BookmarkTreeNodeUnmodifiable where
+  readImpl =
+    Json.read'
+      >=> case _ of
+          "managed" -> pure Managed
+          str -> throwError $ pure $ TypeMismatch "managed" str
 
 newtype BookmarkTreeNode
   = BookmarkTreeNode
@@ -50,31 +41,8 @@ derive instance newtypeBookmarkTreeNode :: Newtype BookmarkTreeNode _
 instance showBookmarkTreeNode :: Show BookmarkTreeNode where
   show (BookmarkTreeNode r) = show r
 
-instance decodeJsonBookmarkTreeNode :: DecodeJson BookmarkTreeNode where
-  decodeJson json =
-    BookmarkTreeNode
-      <$> do
-          obj <- decodeJson json
-          id <- obj .: "id"
-          title <- obj .: "title"
-          children <- obj .:! "children"
-          dateAdded <- obj .:! "dateAdded"
-          dateGroupModified <- obj .:! "dateGroupModified"
-          index <- obj .:! "index"
-          parentId <- obj .:! "parentId"
-          unmodifiable <- obj .:! "unmodifiable"
-          url <- obj .:! "url"
-          pure
-            { id
-            , title
-            , children
-            , dateAdded
-            , dateGroupModified
-            , index
-            , parentId
-            , unmodifiable
-            , url
-            }
+instance readForeignBookmarkTreeNode :: ReadForeign BookmarkTreeNode where
+  readImpl foreign_ = BookmarkTreeNode <$> readImpl foreign_
 
 toUrlObj :: BookmarkTreeNode -> Object BookmarkTreeNode
 toUrlObj = go FO.empty
@@ -86,34 +54,32 @@ toUrlObj = go FO.empty
       Just url -> FO.insert url btn acc
       Nothing -> acc
 
-bookmarks :: ∀ a. DecodeJson a => String -> Array Json -> Chrome (Maybe a)
+bookmarks :: ∀ a. ReadForeign a => String -> Array Foreign -> Chrome (Maybe a)
 bookmarks = Chrome.wrapFailableApi "bookmarks" ~~$ Nothing
 
 getTree :: Chrome (Array BookmarkTreeNode)
 getTree = Chrome.wrapApi "bookmarks" "getTree" []
 
 get :: Array String -> Chrome (Maybe (Array BookmarkTreeNode))
-get ids = bookmarks "get" [ encodeJson ids ]
+get ids = bookmarks "get" [ Json.write ids ]
 
 getOne :: String -> Chrome (Maybe BookmarkTreeNode)
 getOne id = get [ id ] <#> bind ~$ Array.head
 
 getChildren :: String -> Chrome (Maybe (Array BookmarkTreeNode))
-getChildren id = bookmarks "getChildren" [ encodeJson id ]
+getChildren id = bookmarks "getChildren" [ Json.write id ]
 
 getSubTree :: String -> Chrome (Maybe BookmarkTreeNode)
 getSubTree id =
-  bookmarks "getSubTree" [ encodeJson id ]
+  bookmarks "getSubTree" [ Json.write id ]
     <#> bind
     ~$ Array.head
 
 move :: String -> { index :: Maybe Int, parentId :: Maybe String } -> Chrome (Maybe BookmarkTreeNode)
-move id { index, parentId } =
+move id moveDetails =
   bookmarks "move"
-    [ encodeJson id
-    , "index" :=? index
-        ~>? ("parentId" :=? parentId)
-        ~>? jsonEmptyObject
+    [ Json.write id
+    , Json.write moveDetails
     ]
 
 onCreated :: Chrome { id :: String, bookmark :: BookmarkTreeNode }
@@ -133,17 +99,8 @@ onMoved =
   Chrome.wrapListener2 "bookmarks" "onMoved"
     { id: _, moveInfo: _ }
 
-newtype ChangeInfo
-  = ChangeInfo { title :: String, url :: Maybe String }
-
-instance decodeJsonChangeInfo :: DecodeJson ChangeInfo where
-  decodeJson json =
-    ChangeInfo
-      <$> do
-          obj <- decodeJson json
-          title <- obj .: "title"
-          url <- obj .:! "url"
-          pure { title, url }
+type ChangeInfo
+  = { title :: String, url :: Maybe String }
 
 onChanged :: Chrome { id :: String, changeInfo :: ChangeInfo }
 onChanged =

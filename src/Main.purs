@@ -35,7 +35,8 @@ main =
                         bookmarks <- get
                         event <-
                           lift
-                            $ first
+                            $ Debug.log
+                            <$> first
                                 [ Navigated <$> lift2 Tuple WebNav.onBeforeNavigate Tabs.onUpdated
                                 -- ^^ don't use parLift2 because the onUpdate listener gets called multiple times ^^ also the comment is down here because purty sux
                                 , BookmarkCreated <$> Bookmarks.onCreated
@@ -43,7 +44,7 @@ main =
                                 , BookmarkChanged <$> Bookmarks.onChanged
                                 ]
                         case event of
-                          Navigated ({ url } /\ { changeInfo: (Tabs.ChangeInfo c) }) -> do
+                          Navigated ({ url } /\ { changeInfo: c }) -> do
                             when (isJust c.url || c.status == Nothing)
                               $ ( lift
                                     $ runMaybeT do

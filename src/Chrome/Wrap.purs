@@ -69,38 +69,29 @@ foreign import wrapListenerImpl ::
 
 wrapListener :: ∀ a. ReadForeign a => String -> String -> Chrome a
 wrapListener api event =
-  wrapListenerImpl Right (Left $ permission api) api event
-    # fromEffectFnAff
-    # map case _ of
-        Right json ->
-          lmap Decode
-            $ Json.read json
-            >>= case _ of
-                [ a ] -> Right a
-                _ -> Left $ pure $ TypeMismatch "wrapListener" "not an array with a single element"
-        Left e -> Left e
-    # ExceptT
+  wrapListenerNHelper api event \json ->
+    Json.read json
+      >>= case _ of
+          [ a ] -> Right a
+          _ -> Left $ pure $ TypeMismatch "wrapListener" "not an array with a single element"
 
 wrapListener2 :: ∀ a b c. ReadForeign a => ReadForeign b => String -> String -> (a -> b -> c) -> Chrome c
 wrapListener2 api event f =
-  wrapListenerImpl Right (Left $ permission api) api event
-    # fromEffectFnAff
-    # map case _ of
-        Right json ->
-          lmap Decode do
-            T2 a b <- Json.read json
-            pure $ f a b
-        Left e -> Left e
-    # ExceptT
+  wrapListenerNHelper api event \json -> do
+    T2 a b <- Json.read json
+    pure $ f a b
 
 wrapListener3 :: ∀ a b c d. ReadForeign a => ReadForeign b => ReadForeign c => String -> String -> (a -> b -> c -> d) -> Chrome d
 wrapListener3 api event f =
+  wrapListenerNHelper api event \json -> do
+    T3 a b c <- Json.read json
+    pure $ f a b c
+
+wrapListenerNHelper :: ∀ a. String -> String -> (Foreign -> Json.E a) -> Chrome a
+wrapListenerNHelper api event f =
   wrapListenerImpl Right (Left $ permission api) api event
     # fromEffectFnAff
     # map case _ of
-        Right json ->
-          lmap Decode do
-            T3 a b c <- Json.read json
-            pure $ f a b c
+        Right json -> lmap Decode $ f json
         Left e -> Left e
     # ExceptT

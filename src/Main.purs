@@ -72,7 +72,7 @@ main =
       )
 
 data Event
-  = Navigated (WebNav.Details /\ Tabs.OnUpdated)
+  = Navigated (WebNav.BeforeNavigateDetails /\ Tabs.OnUpdated)
   | BookmarkCreated { id :: String, bookmark :: BookmarkTreeNode }
   | BookmarkMoved { id :: String, moveInfo :: Bookmarks.MoveInfo }
   | BookmarkChanged { id :: String, changeInfo :: Bookmarks.ChangeInfo }

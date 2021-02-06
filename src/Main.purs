@@ -4,6 +4,7 @@ import MasonPrelude
 import Chrome.Bookmarks (BookmarkTreeNode(..))
 import Chrome.Bookmarks as Bookmarks
 import Chrome.Tabs as Tabs
+import Chrome.WebNavigation (TransitionType(..))
 import Chrome.WebNavigation as WebNav
 import Chrome.Wrap (Chrome)
 import Data.List ((:))
@@ -37,15 +38,15 @@ main =
                           lift
                             $ Debug.log
                             <$> first
-                                [ Navigated <$> lift2 Tuple WebNav.onBeforeNavigate Tabs.onUpdated
+                                [ Navigated <$> lift2 Tuple WebNav.onBeforeNavigate WebNav.onCommitted
                                 -- ^^ don't use parLift2 because the onUpdate listener gets called multiple times ^^ also the comment is down here because purty sux
                                 , BookmarkCreated <$> Bookmarks.onCreated
                                 , BookmarkMoved <$> Bookmarks.onMoved
                                 , BookmarkChanged <$> Bookmarks.onChanged
                                 ]
                         case event of
-                          Navigated ({ url } /\ { changeInfo: c }) -> do
-                            when (isJust c.url || c.status == Nothing)
+                          Navigated ({ url } /\ { transitionType }) -> do
+                            when (transitionType /= Reload)
                               $ ( lift
                                     $ runMaybeT do
                                         bookmark <- MaybeT $ pure $ Obj.lookup url bookmarks
@@ -71,7 +72,7 @@ main =
       )
 
 data Event
-  = Navigated (WebNav.BeforeNavigateDetails /\ Tabs.OnUpdated)
+  = Navigated (WebNav.BeforeNavigateDetails /\ WebNav.CommittedDetails)
   | BookmarkCreated { id :: String, bookmark :: BookmarkTreeNode }
   | BookmarkMoved { id :: String, moveInfo :: Bookmarks.MoveInfo }
   | BookmarkChanged { id :: String, changeInfo :: Bookmarks.ChangeInfo }

@@ -55,12 +55,11 @@ main =
                                               ( \id ->
                                                   runMaybeT do
                                                     index <- (MaybeT $ Bookmarks.getOne id) <#> unwrap <#> _.index
-                                                    void $ lift
+                                                    lift
                                                       $ Bookmarks.move id
                                                           { index: index <#> (_ / 2)
                                                           , parentId: Nothing
                                                           }
-                                                    <#> fromMaybe unit
                                               )
                                 )
                               >>= case _ of

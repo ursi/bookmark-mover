@@ -8,16 +8,22 @@ background = background.js
 removeSrc = $(1:$(src)/%=%)
 makeAndLink = mkdir -p $(dist)/$(dir $1); ln -f $(src)/$1 $(dist)/$1;
 
-$(dist) :  $(background) $(addprefix $(src)/,$(copy))
-	$(call map,removeSrc makeAndLink,$?)
-	ln -f $(background) $(dist)
+.PHONY: all copy
+
+all : $(dist) copy $(dist)/$(background)
+
+$(dist) :
+	-mkdir $(dist)
 	touch $(dist)
 
-$(background) : $(shell find src -type f)
+copy : $(addprefix $(src)/,$(copy))
+	$(call map,removeSrc makeAndLink,$?)
+
+$(dist)/$(background) : $(shell find src -type f)
 	spago bundle-app -t $@
 
 clean :
-	rm -r $(dist) $(background)
+	rm -r $(dist)
 
 # $(call compose,f1 f2 f3,w) -> $(call f3,$(call f2,$(call f1,w)))
 compose = $(if $1,$(call compose,$(wordlist 2,$(words $1),$1),$(call $1,$2)),$2)

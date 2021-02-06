@@ -17,7 +17,7 @@ import Data.Newtype (unwrap)
 import Debug as Debug
 import Effect.Aff (launchAff_)
 import Foreign.Object (Object)
-import Foreign.Object as FO
+import Foreign.Object as Obj
 
 bookmarksBarId :: String
 bookmarksBarId = "1"
@@ -48,7 +48,7 @@ main =
                             when (isJust c.url || c.status == Nothing)
                               $ ( lift
                                     $ runMaybeT do
-                                        bookmark <- MaybeT $ pure $ FO.lookup url bookmarks
+                                        bookmark <- MaybeT $ pure $ Obj.lookup url bookmarks
                                         lift
                                           $ (getLineage bookmark)
                                           >>= traverse_
@@ -80,7 +80,7 @@ data Event
 getBookmakrs :: Chrome (Object BookmarkTreeNode)
 getBookmakrs =
   Bookmarks.getSubTree bookmarksBarId
-    <#> maybe FO.empty Bookmarks.toUrlObj
+    <#> maybe Obj.empty Bookmarks.toUrlObj
 
 getLineage :: BookmarkTreeNode -> Chrome (List String)
 getLineage btn = go (pure $ (unwrap btn).id) btn

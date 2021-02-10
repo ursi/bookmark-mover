@@ -1,7 +1,7 @@
 module Chrome.WebNavigation where
 
 import MasonPrelude
-import Chrome.Wrap (Chrome)
+import Chrome.Wrap (Chrome, ChromeEvent)
 import Chrome.Wrap as Chrome
 import Control.Monad.Except (throwError)
 import Debug as Debug
@@ -23,6 +23,9 @@ type BeforeNavigateDetails
 
 onBeforeNavigate :: Chrome BeforeNavigateDetails
 onBeforeNavigate = Chrome.wrapListener "webNavigation" "onBeforeNavigate"
+
+onBeforeNavigateE :: ChromeEvent BeforeNavigateDetails
+onBeforeNavigateE = Chrome.wrapEvent "webNavigation" "onBeforeNavigate"
 
 data TransitionType
   = Link
@@ -110,3 +113,6 @@ type CommittedDetails
 
 onCommitted :: Chrome CommittedDetails
 onCommitted = Chrome.wrapListener "webNavigation" "onCommitted"
+
+onCommittedE :: ChromeEvent CommittedDetails
+onCommittedE = Chrome.wrapEvent "webNavigation" "onCommitted"

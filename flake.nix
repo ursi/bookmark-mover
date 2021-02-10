@@ -30,12 +30,6 @@
                   src = .
                   dist = dist
 
-                  copy = *.json
-
-                  copyTargets = $(addprefix $(dist)/,$(copy))
-
-                  background = background.js
-
                   .PHONY: all watch
 
                   all : $(dist) $(copyTargets) $(dist)/$(background)
@@ -50,11 +44,15 @@
                       -mkdir $(dist)
                       touch $(dist)
 
+                  copy = *.json
+                  copyTargets = $(addprefix $(dist)/,$(copy))
                   removeSrc = $(1:$(src)/%=%)
                   makeAndLink = mkdir -p $(dist)/$(dir $1); ln -f $(src)/$1 $(dist)/$1;
 
                   $(copyTargets) : ${watchedFiles.copy}
                       $(call map,removeSrc makeAndLink,$?)
+
+                  background = background.js
 
                   $(dist)/$(background) : ${watchedFiles.purescript}
                       spago bundle-app -t $@

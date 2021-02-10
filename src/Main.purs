@@ -51,7 +51,7 @@ main =
                                     $ runMaybeT do
                                         bookmark <- MaybeT $ pure $ Obj.lookup url bookmarks
                                         lift
-                                          $ (getLineage bookmark)
+                                          $ getLineage bookmark
                                           >>= traverse_
                                               ( \id ->
                                                   runMaybeT do

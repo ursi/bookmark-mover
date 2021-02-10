@@ -3,22 +3,19 @@ module Main where
 import MasonPrelude
 import Chrome.Bookmarks (BookmarkTreeNode(..))
 import Chrome.Bookmarks as Bookmarks
-import Chrome.Tabs as Tabs
 import Chrome.WebNavigation (TransitionType(..))
 import Chrome.WebNavigation as WebNav
-import Chrome.Wrap (Chrome, ChromeEvent)
+import Chrome.Wrap (Chrome)
 import Chrome.Wrap as Chrome
 import Data.List ((:))
-import Control.Monad.Except (ExceptT(..), mapExceptT, runExceptT)
+import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (get, put, runStateT)
 import Control.Monad.Trans.Class (lift)
-import Data.Maybe (isJust)
 import Data.Newtype (unwrap)
 import Debug as Debug
-import Effect.Aff (Aff, launchAff_)
-import Effect.Exception (Error)
+import Effect.Aff (launchAff_)
 import Foreign.Object (Object)
 import Foreign.Object as Obj
 import FRP.Event as Event

@@ -1,20 +1,25 @@
 module Chrome.Wrap where
 
 import MasonPrelude
-import Control.Monad.Except (ExceptT(..))
+import Control.Monad.Except (ExceptT(..), runExceptT)
 import Data.Bifunctor (bimap, lmap)
 import Data.Maybe (fromJust)
 import Data.MultiTuple (T2(..), T3(..))
 import Debug as Debug
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Canceler(..), makeAff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import Foreign (Foreign, ForeignError(..), MultipleErrors)
+import FRP.Event (Event)
+import FRP.Event as Event
 import Partial.Unsafe (unsafePartial)
 import Simple.JSON (class ReadForeign)
 import Simple.JSON as Json
 
 type Chrome a
   = ExceptT Error Aff a
+
+type ChromeEvent a
+  = ExceptT Error Event a
 
 type Api
   = String
@@ -87,6 +92,47 @@ wrapListener2 = wrap2Helper wrapListenerNHelper
 
 wrapListener3 :: ∀ a b c d. ReadForeign a => ReadForeign b => ReadForeign c => (a -> b -> c -> d) -> Api -> String -> Chrome d
 wrapListener3 = wrap3Helper wrapListenerNHelper
+
+eventToAff :: Event ~> Aff
+eventToAff event =
+  makeAff \callback -> do
+    canceler <- Event.subscribe event $ callback <. Right
+    pure $ Canceler \_ -> liftEffect canceler
+
+foreign import wrapEventImpl ::
+  (∀ a' b'. b' -> a' \/ b') ->
+  (∀ a'. Error \/ a') ->
+  Api ->
+  String ->
+  (Error \/ Foreign -> Effect Unit) ->
+  Effect (Effect Unit)
+
+wrapEventNHelper :: ∀ a. (Foreign -> Json.E a) -> Api -> String -> ChromeEvent a
+wrapEventNHelper f api event =
+  ( Event.makeEvent \callback ->
+      wrapEventImpl Right (Left $ permission api) api event
+        ( callback
+            <. case _ of
+                Right json -> lmap Decode $ f json
+                Left e -> Left e
+        )
+  )
+    # ExceptT
+
+wrapEvent :: ∀ a. ReadForeign a => Api -> String -> ChromeEvent a
+wrapEvent = wrapHelper wrapEventNHelper
+
+wrapEvent2 :: ∀ a b c. ReadForeign a => ReadForeign b => (a -> b -> c) -> Api -> String -> ChromeEvent c
+wrapEvent2 = wrap2Helper wrapEventNHelper
+
+wrapEvent3 :: ∀ a b c d. ReadForeign a => ReadForeign b => ReadForeign c => (a -> b -> c -> d) -> Api -> String -> ChromeEvent d
+wrapEvent3 = wrap3Helper wrapEventNHelper
+
+toChrome :: ChromeEvent ~> Chrome
+toChrome =
+  runExceptT
+    .> eventToAff
+    .> ExceptT
 
 wrapHelper ::
   ∀ a b.

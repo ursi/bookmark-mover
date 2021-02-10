@@ -52,3 +52,16 @@ exports.wrapListenerImpl = Right => LeftPermissions => api => method => (onError
 
 	return (_, __, onCancelerSuccess) => onCancelerSuccess();
 }
+
+exports.wrapEventImpl = Right => LeftPermissions => api => method => callback => {
+	const listener = (...args) =>  callback(Right(args))();
+
+	if (api in chrome) {
+		const event = chrome[api][method];
+		event.addListener(listener);
+		return () => () => event.removeListener(listener);
+	} else {
+		callback(LeftPermissions)();
+		return () => () => {};
+	}
+};

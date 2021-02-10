@@ -41,9 +41,10 @@
                   all : $(dist) $(copyTargets) $(dist)/$(background)
 
                   watch :
-                      make
-                      # while true; do inotifywait -e modify -e move -e create -e delete ${allWatchedFiles} && make; done
-                      while true; do inotifywait -e close_write -e move -e create -e delete ${allWatchedFiles} && make; done
+                      while true; do
+                        make -f ${placeholder "out"}
+                        inotifywait -e close_write -e move -e create -e delete ${allWatchedFiles}
+                      done
 
                   $(dist) :
                       -mkdir $(dist)
@@ -66,6 +67,8 @@
 
                   # $(call map,f1 f2,w1 w2) -> $(call compose,f1 f2,w1) $(call compose,f1 f2,w2)
                   map = $(foreach a,$2,$(call compose,$1,$a))
+
+                  .ONESHELL :
                   ''
                 );
             in

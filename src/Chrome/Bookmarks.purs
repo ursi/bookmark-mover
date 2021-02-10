@@ -84,8 +84,10 @@ move id moveDetails =
 
 onCreated :: Chrome { id :: String, bookmark :: BookmarkTreeNode }
 onCreated =
-  Chrome.wrapListener2 "bookmarks" "onCreated"
+  Chrome.wrapListener2
     { id: _, bookmark: _ }
+    "bookmarks"
+    "onCreated"
 
 type MoveInfo
   = { index :: Int
@@ -96,13 +98,17 @@ type MoveInfo
 
 onMoved :: Chrome { id :: String, moveInfo :: MoveInfo }
 onMoved =
-  Chrome.wrapListener2 "bookmarks" "onMoved"
+  Chrome.wrapListener2
     { id: _, moveInfo: _ }
+    "bookmarks"
+    "onMoved"
 
 type ChangeInfo
   = { title :: String, url :: Maybe String }
 
 onChanged :: Chrome { id :: String, changeInfo :: ChangeInfo }
 onChanged =
-  Chrome.wrapListener2 "bookmarks" "onChanged"
+  Chrome.wrapListener2
     { id: _, changeInfo: _ }
+    "bookmarks"
+    "onChanged"

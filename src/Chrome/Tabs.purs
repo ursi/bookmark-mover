@@ -99,8 +99,10 @@ type OnUpdated
 
 onUpdated :: Chrome OnUpdated
 onUpdated =
-  Chrome.wrapListener3 "tabs" "onUpdated"
+  Chrome.wrapListener3
     { tabId: _, changeInfo: _, tab: _ }
+    "tabs"
+    "onUpdated"
 
 onCreated :: Chrome Tab
 onCreated = Chrome.wrapListener "tabs" "onCreated"

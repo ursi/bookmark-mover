@@ -32,7 +32,7 @@ data TransitionType
   | Typed
   | AutoBookmark
   | AutoSubframe
-  | ManualSuftbframe
+  | ManualSubframe
   | Generated
   | StartPage
   | FormSubmit
@@ -50,7 +50,7 @@ instance readForeignTransitionType :: ReadForeign TransitionType where
           "typed" -> pure Typed
           "auto_bookmark" -> pure AutoBookmark
           "auto_subframe" -> pure AutoSubframe
-          "manual_suftbframe" -> pure ManualSuftbframe
+          "manual_subframe" -> pure ManualSubframe
           "generated" -> pure Generated
           "start_page" -> pure StartPage
           "form_submit" -> pure FormSubmit
@@ -67,7 +67,7 @@ transitionTypes =
   , "typed"
   , "auto_bookmark"
   , "auto_subframe"
-  , "manual_suftbframe"
+  , "manual_subframe"
   , "generated"
   , "start_page"
   , "form_submit"

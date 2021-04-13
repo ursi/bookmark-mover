@@ -4,7 +4,6 @@ import MasonPrelude
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Data.Bifunctor (bimap, lmap)
 import Data.Maybe (fromJust)
-import Data.MultiTuple (T2(..), T3(..))
 import Debug as Debug
 import Effect.Aff (Aff, Canceler(..), makeAff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
@@ -159,7 +158,7 @@ wrap2Helper ::
   m c
 wrap2Helper w f =
   w \json -> do
-    T2 a b <- Json.read json
+    a /\ b <- Json.read json
     pure $ f a b
 
 wrap3Helper ::
@@ -174,5 +173,5 @@ wrap3Helper ::
   m d
 wrap3Helper w f =
   w \json -> do
-    T3 a b c <- Json.read json
+    a /\ b /\ c <- Json.read json
     pure $ f a b c

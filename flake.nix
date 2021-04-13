@@ -18,8 +18,8 @@
                     with ps-pkgs;
                     [ aff
                       event
-                      simple-json
                       ursi.prelude
+                      ursi.simple-json
                     ];
 
                   src = ./src;

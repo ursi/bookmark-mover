@@ -1,15 +1,15 @@
 { inputs =
     { nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
       purs-nix.url = "github:ursi/purs-nix";
-      utils.url = "github:ursi/flake-utils";
+      utils.url = "github:ursi/flake-utils/2";
     };
 
-  outputs = { nixpkgs, utils, purs-nix, ... }:
-    utils.defaultSystems
-      ({ pkgs, system }:
+  outputs = { utils, ... }@inputs:
+    utils.default-systems
+      ({ make-shell, pkgs, purs-nix, ... }:
          let
            b = builtins; p = pkgs;
-           inherit (purs-nix { inherit system; }) purs ps-pkgs ps-pkgs-ns;
+           inherit (purs-nix) purs ps-pkgs ps-pkgs-ns;
 
            inherit
              (purs
@@ -22,11 +22,11 @@
                       ursi.simple-json
                     ];
 
-                  src = ./src;
+                  srcs = [ ./src ];
                 }
              )
              modules
-             shell;
+             command;
          in
          { defaultPackage =
              p.runCommand "bookmark-mover" {}
@@ -37,15 +37,15 @@
                '';
 
            devShell =
-             with p;
-             mkShell
-               { buildInputs =
+             make-shell
+               { packages =
+                   with p;
                    [ nodejs
-                     purescript
-                     (shell {})
+                     purs-nix.purescript
+                     (command {})
                    ];
                };
          }
       )
-      nixpkgs;
+      inputs;
 }

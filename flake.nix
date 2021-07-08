@@ -42,6 +42,7 @@
                    with p;
                    [ nodejs
                      purs-nix.purescript
+                     purs-nix.purescript-language-server
                      (command {})
                    ];
                };

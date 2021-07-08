@@ -4,7 +4,6 @@ import MasonPrelude
 import Chrome.Wrap (Chrome)
 import Chrome.Wrap as Chrome
 import Control.Monad.Except (throwError)
-import Debug as Debug
 import Foreign (ForeignError(..))
 import Simple.JSON as Json
 import Simple.JSON (class ReadForeign, class WriteForeign)
@@ -47,13 +46,12 @@ data MutedInfoReason
 instance readForeignMutedInfoReason :: ReadForeign MutedInfoReason where
   readImpl =
     Json.read'
-      >=> case _ of
+    >=> case _ of
           "user" -> pure User
           "capture" -> pure Capture
           "extension" -> pure Extension
-          str ->
-            throwError $ pure
-              $ TypeMismatch "one of: user, capture, extension" str
+
+          str -> throwError $ pure $ TypeMismatch "one of: user, capture, extension" str
 
 data TabStatus
   = Unloaded
@@ -65,13 +63,12 @@ derive instance eqTabStatus :: Eq TabStatus
 instance readForeignTabStatus :: ReadForeign TabStatus where
   readImpl =
     Json.read'
-      >=> case _ of
+    >=> case _ of
           "unloaded" -> pure Unloaded
           "loading" -> pure Loading
           "complete" -> pure Complete
-          str ->
-            throwError $ pure
-              $ TypeMismatch "one of: unloaded, loading, complete" str
+
+          str -> throwError $ pure $ TypeMismatch "one of: unloaded, loading, complete" str
 
 instance writeForeignTabStatus :: WriteForeign TabStatus where
   writeImpl = case _ of
@@ -136,23 +133,25 @@ data WindowType
 instance readForeignWindowType :: ReadForeign WindowType where
   readImpl =
     Json.read'
-      >=> case _ of
+    >=> case _ of
           "normal" -> pure Normal
           "popup" -> pure Popup
           "panel" -> pure Panel
           "app" -> pure App
           "devtools" -> pure Devtools
+
           str ->
-            throwError $ pure
-              $ TypeMismatch "one of: normal, popup, panel, app, devtools" str
+            throwError
+            $ pure $ TypeMismatch "one of: normal, popup, panel, app, devtools" str
 
 instance writeForeignWindowType :: WriteForeign WindowType where
-  writeImpl = case _ of
-    Normal -> Json.write "normal"
-    Popup -> Json.write "popup"
-    Panel -> Json.write "panel"
-    App -> Json.write "app"
-    Devtools -> Json.write "devtools"
+  writeImpl =
+    case _ of
+      Normal -> Json.write "normal"
+      Popup -> Json.write "popup"
+      Panel -> Json.write "panel"
+      App -> Json.write "app"
+      Devtools -> Json.write "devtools"
 
 defaultQuery :: QueryInfo
 defaultQuery =

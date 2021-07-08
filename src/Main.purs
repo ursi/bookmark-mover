@@ -26,50 +26,55 @@ bookmarksBarId = "1"
 main :: Effect Unit
 main =
   launchAff_
-    $ ( case _ of
-          Left e -> logShow e
-          Right _ -> pure unit
-          =<< ( runExceptT
-                $ getBookmakrs
-                >>= runStateT
-                    ( forever do
-                        bookmarks <- get
-                        event <-
-                          lift
-                            $ Debug.log
-                            <$> first
-                                [ Navigated <$> something
-                                -- ^^ don't use parLift2 because the onUpdate listener gets called multiple times ^^ also the comment is down here because purty sux
-                                , BookmarkCreated <$> Bookmarks.onCreated
-                                , BookmarkMoved <$> Bookmarks.onMoved
-                                , BookmarkChanged <$> Bookmarks.onChanged
-                                ]
-                        case event of
-                          Navigated { url, transitionType } -> do
-                            when (transitionType /= Reload)
-                              $ ( lift
-                                    $ runMaybeT do
-                                        bookmark <- MaybeT $ pure $ Obj.lookup url bookmarks
-                                        lift
-                                          $ getLineage bookmark
-                                          >>= traverse_
-                                              ( \id ->
-                                                  runMaybeT do
-                                                    index <- (MaybeT $ Bookmarks.getOne id) <#> unwrap <#> _.index
-                                                    lift
-                                                      $ Bookmarks.move id
-                                                          { index: index <#> (_ / 2)
-                                                          , parentId: Nothing
-                                                          }
+  $ case _ of
+      Left e -> logShow e
+      Right _ -> pure unit
+    =<< (runExceptT
+         $ getBookmakrs
+           >>= runStateT
+                 (forever do
+                    bookmarks <- get
+
+                    event <-
+                      lift
+                      $ Debug.log
+                        <$> first
+                              [ Navigated <$> something
+                              -- ^^ don't use parLift2 because the onUpdate listener gets called multiple times ^^ also the comment is down here because purty sux
+                              , BookmarkCreated <$> Bookmarks.onCreated
+                              , BookmarkMoved <$> Bookmarks.onMoved
+                              , BookmarkChanged <$> Bookmarks.onChanged
+                              ]
+
+                    case event of
+                      Navigated { url, transitionType } -> do
+                        when (transitionType /= Reload)
+                        $ (lift
+                           $ runMaybeT do
+                              bookmark <- MaybeT $ pure $ Obj.lookup url bookmarks
+
+                              lift
+                                (getLineage bookmark
+                                 >>= traverse_
+                                       \id ->
+                                          runMaybeT do
+                                            index <- (MaybeT $ Bookmarks.getOne id) <#> unwrap <#> _.index
+
+                                            lift
+                                              (Bookmarks.move id
+                                                 { index: index <#> (_ / 2)
+                                                 , parentId: Nothing
+                                                 }
                                               )
                                 )
-                              >>= case _ of
-                                  Just _ -> lift getBookmakrs >>= put
-                                  Nothing -> pure unit
-                          _ -> lift getBookmakrs >>= put
-                    )
-            )
-      )
+                          )
+                          >>= case _ of
+                                Just _ -> lift getBookmakrs >>= put
+                                Nothing -> pure unit
+
+                      _ -> lift getBookmakrs >>= put
+                 )
+          )
 
 data Event
   = Navigated { url :: String, transitionType :: TransitionType }
@@ -80,7 +85,7 @@ data Event
 getBookmakrs :: Chrome (Object BookmarkTreeNode)
 getBookmakrs =
   Bookmarks.getSubTree bookmarksBarId
-    <#> maybe Obj.empty Bookmarks.toUrlObj
+  <#> maybe Obj.empty Bookmarks.toUrlObj
 
 getLineage :: BookmarkTreeNode -> Chrome (List String)
 getLineage btn = go (pure $ (unwrap btn).id) btn
@@ -88,27 +93,28 @@ getLineage btn = go (pure $ (unwrap btn).id) btn
   go :: List String -> BookmarkTreeNode -> Chrome (List String)
   go acc (BookmarkTreeNode btn') =
     runMaybeT
-      ( do
-          parentId <- MaybeT $ pure $ btn'.parentId
-          if parentId == bookmarksBarId then
-            pure acc
-          else
-            (MaybeT $ Bookmarks.getOne parentId)
-              >>= (lift <. go (parentId : acc))
+      (do
+         parentId <- MaybeT $ pure $ btn'.parentId
+
+         if parentId == bookmarksBarId then
+           pure acc
+         else
+           (MaybeT $ Bookmarks.getOne parentId)
+           >>= (lift <. go (parentId : acc))
       )
-      <#> fromMaybe acc
+    <#> fromMaybe acc
 
 first :: ∀ a. Array (Chrome a) -> Chrome a
 first =
   map runExceptT
-    .> parOneOf
-    .> ExceptT
+  .> parOneOf
+  .> ExceptT
 
 something :: Chrome { url :: String, transitionType :: TransitionType }
 something =
   Event.sampleOn
     (runExceptT WebNav.onBeforeNavigateE)
     (runExceptT WebNav.onCommittedE <#> \ocDets obnDets -> lift2 Tuple obnDets ocDets)
-    # ExceptT
-    # Chrome.toChrome
-    <#> \({ url } /\ { transitionType }) -> { url, transitionType }
+  # ExceptT
+  # Chrome.toChrome
+  <#> \({ url } /\ { transitionType }) -> { url, transitionType }

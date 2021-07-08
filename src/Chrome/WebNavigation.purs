@@ -4,10 +4,9 @@ import MasonPrelude
 import Chrome.Wrap (Chrome, ChromeEvent)
 import Chrome.Wrap as Chrome
 import Control.Monad.Except (throwError)
-import Debug as Debug
 import Foreign (ForeignError(..))
 import Simple.JSON as Json
-import Simple.JSON (class ReadForeign, class WriteForeign)
+import Simple.JSON (class ReadForeign)
 
 type BaseDetails r
   = { frameId :: Int
@@ -45,7 +44,7 @@ derive instance eqTransitionType :: Eq TransitionType
 instance readForeignTransitionType :: ReadForeign TransitionType where
   readImpl =
     Json.read'
-      >=> case _ of
+    >=> case _ of
           "link" -> pure Link
           "typed" -> pure Typed
           "auto_bookmark" -> pure AutoBookmark
@@ -57,9 +56,10 @@ instance readForeignTransitionType :: ReadForeign TransitionType where
           "reload" -> pure Reload
           "keyword" -> pure Keyword
           "keyword_generated" -> pure KeywordGenerated
+
           str ->
-            throwError $ pure
-              $ TypeMismatch ("one of: " <> intercalate ", " transitionTypes) str
+            throwError
+            $ pure $ TypeMismatch ("one of: " <> intercalate ", " transitionTypes) str
 
 transitionTypes :: Array String
 transitionTypes =
@@ -87,14 +87,15 @@ derive instance eqTransitionQualifier :: Eq TransitionQualifier
 instance readForeignTransitionQualifier :: ReadForeign TransitionQualifier where
   readImpl =
     Json.read'
-      >=> case _ of
+    >=> case _ of
           "client_redirect" -> pure ClientRedirect
           "server_redirect" -> pure ServerRedirect
           "forward_back" -> pure ForwardBack
           "from_address_bar" -> pure FromAddressBar
+
           str ->
-            throwError $ pure
-              $ TypeMismatch ("one of: " <> intercalate ", " transitionQualifiers) str
+            throwError
+            $ pure $ TypeMismatch ("one of: " <> intercalate ", " transitionQualifiers) str
 
 transitionQualifiers :: Array String
 transitionQualifiers =

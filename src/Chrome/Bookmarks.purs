@@ -19,7 +19,7 @@ data BookmarkTreeNodeUnmodifiable
 instance readForeignBookmarkTreeNodeUnmodifiable :: ReadForeign BookmarkTreeNodeUnmodifiable where
   readImpl =
     Json.read'
-      >=> case _ of
+    >=> case _ of
           "managed" -> pure Managed
           str -> throwError $ pure $ TypeMismatch "managed" str
 
@@ -48,11 +48,14 @@ toUrlObj :: BookmarkTreeNode -> Object BookmarkTreeNode
 toUrlObj = go FO.empty
   where
   go :: Object BookmarkTreeNode -> BookmarkTreeNode -> Object BookmarkTreeNode
-  go acc btn@(BookmarkTreeNode r) = case r.children of
-    Just children -> foldl go acc children
-    Nothing -> case r.url of
-      Just url -> FO.insert url btn acc
-      Nothing -> acc
+  go acc btn@(BookmarkTreeNode r) =
+    case r.children of
+      Just children -> foldl go acc children
+
+      Nothing ->
+        case r.url of
+          Just url -> FO.insert url btn acc
+          Nothing -> acc
 
 bookmarks :: ∀ a. ReadForeign a => String -> Array Foreign -> Chrome (Maybe a)
 bookmarks = Chrome.wrapFailableApi "bookmarks" ~~$ Nothing
@@ -72,8 +75,7 @@ getChildren id = bookmarks "getChildren" [ Json.write id ]
 getSubTree :: String -> Chrome (Maybe BookmarkTreeNode)
 getSubTree id =
   bookmarks "getSubTree" [ Json.write id ]
-    <#> bind
-    ~$ Array.head
+  <#> bind ~$ Array.head
 
 move :: String -> { index :: Maybe Int, parentId :: Maybe String } -> Chrome (Maybe BookmarkTreeNode)
 move id moveDetails =

@@ -29,11 +29,21 @@
              command;
          in
          { defaultPackage =
-             p.runCommand "bookmark-mover" {}
+             let
+               background = "background.js";
+
+               manifest =
+                 (p.formats.json {}).generate
+                   "manifest.json"
+                   (import ./manifest.nix { inherit background name; });
+
+               name = "bookmark-mover";
+             in
+             p.runCommand name {}
                ''
-               mkdir $out
-               ln -s ${./manifest.json} $out/manifest.json
-               ln -s ${modules.Main.bundle {}} $out/background.js
+               mkdir $out; cd $out
+               ln -s ${manifest} manifest.json
+               ln -s ${modules.Main.bundle {}} ${background}
                '';
 
            devShell =
